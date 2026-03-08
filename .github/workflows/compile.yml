@@ -12,7 +12,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Install updated CMake
+      # Install latest CMake for ESP-IDF
       - name: Install CMake
         run: |
           sudo apt update
@@ -23,7 +23,14 @@ jobs:
           sudo ./cmake-3.27.5-linux-x86_64.sh --skip-license --prefix=/usr/local
           cmake --version
 
-      # Cache ESP-IDF
+      # Install ESP-IDF
+      - name: Install ESP-IDF
+        run: |
+          git clone -b v5.5.3 --recursive https://github.com/espressif/esp-idf.git esp-idf
+          cd esp-idf
+          ./install.sh
+
+      # Cache ESP-IDF components
       - name: Cache ESP-IDF
         uses: actions/cache@v3
         with:
@@ -31,15 +38,6 @@ jobs:
           key: ${{ runner.os }}-esp-idf-${{ hashFiles('**/sdkconfig') }}
           restore-keys: |
             ${{ runner.os }}-esp-idf-
-
-      # Cache ESP-SR
-      - name: Cache ESP-SR
-        uses: actions/cache@v3
-        with:
-          path: ~/.espressif/esp-idf/components/esp-sr
-          key: ${{ runner.os }}-esp-sr-${{ hashFiles('**/sdkconfig') }}
-          restore-keys: |
-            ${{ runner.os }}-esp-sr-
 
       # Cache build folder
       - name: Cache build folder
@@ -50,22 +48,17 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-build-
 
-      # Install ESP-IDF
-      - name: Install ESP-IDF
-        run: |
-          git clone -b v5.5.3 --recursive https://github.com/espressif/esp-idf.git esp-idf
-          cd esp-idf
-          ./install.sh
-
       # Build firmware
       - name: Build firmware
         run: |
           cd $GITHUB_WORKSPACE
           . esp-idf/export.sh
+          idf.py set-target esp32
+          idf.py add-dependency "espressif/esp-dsp^1.7.0"
           idf.py add-dependency "espressif/esp-sr^2.3.1"
           idf.py build
 
-      # Upload firmware
+      # Upload firmware artifact
       - name: Upload firmware
         uses: actions/upload-artifact@v4
         with:
