@@ -12,17 +12,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Install latest CMake for ESP-IDF
-      - name: Install CMake
-        run: |
-          sudo apt update
-          sudo apt remove --purge cmake -y
-          sudo apt install -y wget build-essential
-          wget https://github.com/Kitware/CMake/releases/download/v3.27.5/cmake-3.27.5-linux-x86_64.sh
-          chmod +x cmake-3.27.5-linux-x86_64.sh
-          sudo ./cmake-3.27.5-linux-x86_64.sh --skip-license --prefix=/usr/local
-          cmake --version
-
       # Install ESP-IDF
       - name: Install ESP-IDF
         run: |
@@ -30,32 +19,26 @@ jobs:
           cd esp-idf
           ./install.sh
 
-      # Cache ESP-IDF components
-      - name: Cache ESP-IDF
-        uses: actions/cache@v3
-        with:
-          path: esp-idf
-          key: ${{ runner.os }}-esp-idf-${{ hashFiles('**/sdkconfig') }}
-          restore-keys: |
-            ${{ runner.os }}-esp-idf-
+      # Set up ESP-IDF environment
+      - name: Export ESP-IDF variables
+        run: |
+          cd $GITHUB_WORKSPACE
+          . esp-idf/export.sh
 
-      # Cache build folder
-      - name: Cache build folder
-        uses: actions/cache@v3
-        with:
-          path: build
-          key: ${{ runner.os }}-build-${{ hashFiles('**/*.c','**/*.h') }}
-          restore-keys: |
-            ${{ runner.os }}-build-
-
-      # Build firmware
-      - name: Build firmware
+      # Install dependencies via IDF component manager
+      - name: Add dependencies
         run: |
           cd $GITHUB_WORKSPACE
           . esp-idf/export.sh
           idf.py set-target esp32
           idf.py add-dependency "espressif/esp-dsp^1.7.0"
           idf.py add-dependency "espressif/esp-sr^2.3.1"
+
+      # Build firmware
+      - name: Build firmware
+        run: |
+          cd $GITHUB_WORKSPACE
+          . esp-idf/export.sh
           idf.py build
 
       # Upload firmware artifact
