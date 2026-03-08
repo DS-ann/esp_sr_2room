@@ -15,9 +15,10 @@
 static const char* TAG = "ESP_SR";
 
 unsigned long activeStartTime = 0;
-const unsigned long ACTIVE_DURATION = 5 * 60 * 1000; // 5 min
+const unsigned long ACTIVE_DURATION = 5 * 60 * 1000; // 5 minutes
 bool isActive = false;
 
+// Function to process recognized commands
 void process_command(const char* cmd) {
     // Room 1 devices
     if(strcmp(cmd, "room 1 light on") == 0) gpio_set_level(ROOM1_LIGHT, 0);
