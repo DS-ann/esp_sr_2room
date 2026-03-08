@@ -9,9 +9,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout repo
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      # Install updated CMake
+      - name: Install CMake
+        run: |
+          sudo apt update
+          sudo apt remove --purge cmake -y
+          sudo apt install -y wget build-essential
+          wget https://github.com/Kitware/CMake/releases/download/v3.27.5/cmake-3.27.5-linux-x86_64.sh
+          chmod +x cmake-3.27.5-linux-x86_64.sh
+          sudo ./cmake-3.27.5-linux-x86_64.sh --skip-license --prefix=/usr/local
+          cmake --version
 
       # Cache ESP-IDF
       - name: Cache ESP-IDF
@@ -22,7 +32,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-esp-idf-
 
-      # Cache ESP-SR component
+      # Cache ESP-SR
       - name: Cache ESP-SR
         uses: actions/cache@v3
         with:
@@ -47,7 +57,7 @@ jobs:
           cd esp-idf
           ./install.sh
 
-      # Build firmware with ESP-SR
+      # Build firmware
       - name: Build firmware
         run: |
           cd $GITHUB_WORKSPACE
@@ -55,7 +65,7 @@ jobs:
           idf.py add-dependency "espressif/esp-sr^2.3.1"
           idf.py build
 
-      # Upload firmware artifact
+      # Upload firmware
       - name: Upload firmware
         uses: actions/upload-artifact@v4
         with:
