@@ -9,27 +9,53 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout repo
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Cache ESP-IDF
+      - name: Cache ESP-IDF
+        uses: actions/cache@v3
+        with:
+          path: esp-idf
+          key: ${{ runner.os }}-esp-idf-${{ hashFiles('**/sdkconfig') }}
+          restore-keys: |
+            ${{ runner.os }}-esp-idf-
+
+      # Cache ESP-SR component
+      - name: Cache ESP-SR
+        uses: actions/cache@v3
+        with:
+          path: ~/.espressif/esp-idf/components/esp-sr
+          key: ${{ runner.os }}-esp-sr-${{ hashFiles('**/sdkconfig') }}
+          restore-keys: |
+            ${{ runner.os }}-esp-sr-
+
+      # Cache build folder
+      - name: Cache build folder
+        uses: actions/cache@v3
+        with:
+          path: build
+          key: ${{ runner.os }}-build-${{ hashFiles('**/*.c','**/*.h') }}
+          restore-keys: |
+            ${{ runner.os }}-build-
+
+      # Install ESP-IDF
       - name: Install ESP-IDF
         run: |
           git clone -b v5.5.3 --recursive https://github.com/espressif/esp-idf.git esp-idf
           cd esp-idf
           ./install.sh
-          . ./export.sh
 
-      - name: Add ESP-SR dependency
-        run: |
-          cd $GITHUB_WORKSPACE
-          idf.py add-dependency "espressif/esp-sr^2.3.1"
-
-      - name: Compile firmware
+      # Build firmware with ESP-SR
+      - name: Build firmware
         run: |
           cd $GITHUB_WORKSPACE
           . esp-idf/export.sh
+          idf.py add-dependency "espressif/esp-sr^2.3.1"
           idf.py build
 
+      # Upload firmware artifact
       - name: Upload firmware
         uses: actions/upload-artifact@v4
         with:
