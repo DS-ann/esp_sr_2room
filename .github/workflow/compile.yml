@@ -1,1 +1,38 @@
 
+name: Build ESP32 Firmware
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install ESP-IDF
+        run: |
+          git clone -b v5.5.3 --recursive https://github.com/espressif/esp-idf.git esp-idf
+          cd esp-idf
+          ./install.sh
+          . ./export.sh
+
+      - name: Add ESP-SR dependency
+        run: |
+          cd $GITHUB_WORKSPACE
+          idf.py add-dependency "espressif/esp-sr^2.3.1"
+
+      - name: Compile firmware
+        run: |
+          cd $GITHUB_WORKSPACE
+          . esp-idf/export.sh
+          idf.py build
+
+      - name: Upload firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: esp32-firmware
+          path: build/
