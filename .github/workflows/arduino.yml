@@ -1,36 +1,39 @@
-name: Arduino CI with Downloadable Output
+name: Build Arduino Uno Firmware
 
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
 
 jobs:
-  compile:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-      - name: Prepare Arduino Folder
-        run: |
-          mkdir lamp
-          mv lamp.ino lamp/
-          
-      - name: Compile sketch
-        uses: arduino/compile-sketches@v1
-        with:
-          fqbn: arduino:avr:uno
-          sketch-paths: |
-            ./lamp
-          # This extra line tells the compiler to save the build outputs to a local directory
-          cli-compile-flags: --output-dir ./build-output
+    # ✅ Correct way
+    - name: Setup Arduino CLI
+      uses: arduino/setup-arduino-cli@v2
 
-      # EXTRA STEP: Upload the compiled hex/bin files to GitHub
-      - name: Upload Compiled Binary Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: lamp-uno-binary
-          path: ./build-output/
+    - name: Setup CLI
+      run: |
+        arduino-cli config init
+        arduino-cli core update-index
+        arduino-cli core install arduino:avr
+
+    - name: Install Libraries
+      run: |
+        arduino-cli lib install "CapacitiveSensor"
+
+    - name: Compile
+      run: |
+        arduino-cli compile \
+          --fqbn arduino:avr:uno \
+          --output-dir build \
+          .
+
+    - name: Upload Firmware
+      uses: actions/upload-artifact@v4
+      with:
+        name: arduino-uno-firmware
+        path: build
