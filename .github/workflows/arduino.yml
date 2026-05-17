@@ -1,0 +1,36 @@
+name: Arduino CI with Downloadable Output
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Prepare Arduino Folder
+        run: |
+          mkdir lamp
+          mv lamp.ino lamp/
+          
+      - name: Compile sketch
+        uses: arduino/compile-sketches@v1
+        with:
+          fqbn: arduino:avr:uno
+          sketch-paths: |
+            ./lamp
+          # This extra line tells the compiler to save the build outputs to a local directory
+          cli-compile-flags: --output-dir ./build-output
+
+      # EXTRA STEP: Upload the compiled hex/bin files to GitHub
+      - name: Upload Compiled Binary Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: lamp-uno-binary
+          path: ./build-output/
