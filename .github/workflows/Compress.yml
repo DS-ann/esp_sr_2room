@@ -1,0 +1,70 @@
+name: Compress MKV to HEVC
+
+on:
+  workflow_dispatch:
+    inputs:
+      zip_url:
+        description: "Direct ZIP download URL"
+        required: true
+        type: string
+
+jobs:
+  compress:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt update
+          sudo apt install -y ffmpeg unzip zip wget
+
+      - name: Download ZIP
+        run: |
+          mkdir input output work
+          wget -O work/input.zip "${{ github.event.inputs.zip_url }}"
+
+      - name: Extract ZIP
+        run: |
+          unzip -q work/input.zip -d input
+
+      - name: Convert Videos
+        run: |
+          shopt -s globstar nullglob
+
+          for file in input/**/*.mkv; do
+
+            rel="${file#input/}"
+            out="output/$rel"
+
+            mkdir -p "$(dirname "$out")"
+
+            echo "Processing: $file"
+
+            ffmpeg -hide_banner -loglevel warning \
+              -i "$file" \
+              -map 0 \
+              -c:v libx265 \
+              -preset slow \
+              -crf 18 \
+              -c:a copy \
+              -c:s copy \
+              -c:t copy \
+              -map_metadata 0 \
+              -map_chapters 0 \
+              "$out"
+
+          done
+
+      - name: Create ZIP
+        run: |
+          cd output
+          zip -r ../compressed.zip .
+
+      - name: Upload ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: compressed-hevc
+          path: compressed.zip
