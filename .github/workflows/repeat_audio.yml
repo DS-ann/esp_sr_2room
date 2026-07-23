@@ -1,0 +1,33 @@
+name: Merge Audio 20 Times
+
+on:
+  workflow_dispatch:
+    inputs:
+      file_path:
+        description: 'Path to input 3GPP file in the repository'
+        required: true
+        default: 'input.3gp'
+
+jobs:
+  process-audio:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Repeat audio 20 times
+        run: |
+          # -stream_loop 19 loops the file 19 additional times (Total: 20 times)
+          ffmpeg -stream_loop 19 -i "${{ github.event.inputs.file_path }}" -c copy output_merged.3gp
+
+      - name: Upload merged audio artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: merged-3gpp-audio
+          path: output_merged.3gp
